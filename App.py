@@ -39,7 +39,9 @@ class MyApp:
         self.individuals = []
 
     def start(self):
-        self.ui.start_animation()
+        for ind in self.individuals:
+            ind.move()
+            self.ui.tk.update()
 
 
 
