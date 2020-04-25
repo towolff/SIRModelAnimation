@@ -22,24 +22,24 @@ class Indiuvidual:
         if coord_x is None and coord_y is None:
 
             pos = self.canvas.coords(self.id_on_canvas)  # left, top, right, bottom
+            if len(pos) > 0:
+                if pos[2] >= self.canvas.winfo_width():
+                    self.xspeed *= -1
 
-            if pos[2] >= self.canvas.winfo_width():
-                self.xspeed *= -1
+                if pos[0] <= 0:
+                    self.xspeed *= -1
 
-            if pos[0] <= 0:
-                self.xspeed *= -1
+                if pos[1] <= 0:
+                    self.yspeed *= -1
 
-            if pos[1] <= 0:
-                self.yspeed *= -1
+                if pos[3] >= self.canvas.winfo_height():
+                    self.yspeed *= -1
 
-            if pos[3] >= self.canvas.winfo_height():
-                self.yspeed *= -1
-
-            elif self.coinFlip(0.04) == 1:
-                xdir = -1 if self.coinFlip(0.5) == 0 else 1
-                ydir = -1 if self.coinFlip(0.5) == 0 else 1
-                self.xspeed = self.xspeed * xdir
-                self.yspeed= self.yspeed * ydir
+                elif self.coinFlip(0.04) == 1:
+                    xdir = -1 if self.coinFlip(0.5) == 0 else 1
+                    ydir = -1 if self.coinFlip(0.5) == 0 else 1
+                    self.xspeed = self.xspeed * xdir
+                    self.yspeed = self.yspeed * ydir
 
         self.canvas.move(self.id_on_canvas, self.xspeed, self.yspeed)
 
