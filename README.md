@@ -1,5 +1,5 @@
 # SIRModelAnimation
-SIR Model Animation by Torge Wolff
+SIR Model Animation written as ```matplotlib.animation.FuncAnimation```.
 
 ### Initial Idea by
 - [https://www.hackster.io/pepis/animated-sir-model-for-coronavirus-spread-72c700](https://www.hackster.io/pepis/animated-sir-model-for-coronavirus-spread-72c700)
@@ -33,3 +33,7 @@ Command Line Arguments:
 -t                       Time until an infected individum is removed; default is 40
 ###################################################################################
 ```
+
+### Example
+
+![alt text](./misc/programm.png "Logo Title Text 1")
