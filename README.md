@@ -14,24 +14,28 @@ $ python run.py
 ### Command Line Arguments
 Command Line Arguments:
 ```
+###############################################################################################
 --n_individuals          number of individuals; default is 400
 -n                       number of individuals; default is 400
-###################################################################################
+###############################################################################################
 --prct_infected          Staring percentage of infected individuals; default is 2
 -p                       Staring percentage of infected individuals; default is 2
-###################################################################################
+###############################################################################################
 --infection_radius       Radius of virus transmission in pixels; default is 2.5
 -r                       Radius of virus transmission in pixels; default is 2.5
-###################################################################################
+###############################################################################################
 --infection_prob         Probability of virus infection of an individum; default is 6
 -i                       Probability of virus infection of an individum; default is 6
-###################################################################################
+###############################################################################################
 --prct_quarantine        Percentage of individuals in quarantine; default is 0
 -q                       Percentage of individuals in quarantine; default is 0
-###################################################################################
+###############################################################################################
 --time_infected          Time until an infected individum is removed; default is 40
 -t                       Time until an infected individum is removed; default is 40
-###################################################################################
+###############################################################################################
+--random_recovery_time   Different random recovery time for each individual; default is False            
+-z                       Different random recovery time for each individual; default is False
+###############################################################################################
 ```
 
 ### Example

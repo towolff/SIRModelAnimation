@@ -2,12 +2,13 @@ from Individual import Individual
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.widgets import Button, Slider
 
 
 class SIRSimulation:
 
     def __init__(self, n_individuals=400, prct_infected=2, r_infection=2.5,
-                 p_infection=6, p_quarantine=0, t_recovery=40):
+                 p_infection=6, p_quarantine=0, t_recovery=40, different_recovery_times=False):
         # SIMULATION PARAMETERS
         self.isRunning = False
         self.wasStarted = False
@@ -18,19 +19,26 @@ class SIRSimulation:
         self.INFECTION_PROBABILITY = p_infection  # probability of transmission in percentage (0-100%)
         self.P_QUARANTINE = p_quarantine  # percentage of the people in quarantine (0-100%)
         self.T_RECOVERY = t_recovery  # time taken to recover in number of frames (0-infinity)
-
+        self.different_recovery_times = different_recovery_times  # rand recovery t for each ind btw.. 1 and t_recovery
         self.n_infected = 0
         self.individuals = []
-
         self._init_individuals()
         self._init_figure()
 
     def _init_individuals(self):
         # creating all the individuals in random positions and infecting some of them.
         for i in range(self.N_INDIVIDUALS):
+            if self.different_recovery_times:
+                if np.random.uniform(0, 1, 1) > 0.5:
+                    recovery_time = np.random.randint(1, self.T_RECOVERY)
+                else:
+                    recovery_time = self.T_RECOVERY
+            else:
+                recovery_time = self.T_RECOVERY
+
             p = Individual(i, np.random.random() * 100, np.random.random() * 100,
                            np.random.random() * 100, np.random.random() * 100,
-                           (np.random.random() + 0.5) * 100, self.T_RECOVERY, False)
+                           (np.random.random() + 0.5) * 100, recovery_time, False)
 
             if np.random.random() < self.PRCT_INFECTED / 100:
                 p.infect(0)
@@ -43,10 +51,12 @@ class SIRSimulation:
     def _init_figure(self):
         # create all the graphics
         self.fig = plt.figure(figsize=(20, 10))
+        self.fig.suptitle('SIR Model Animation', fontsize=20)
+        self.fig.canvas.set_window_title('SIR Model Animation')
         self.ax = self.fig.add_subplot(1, 2, 1)
         self.cx = self.fig.add_subplot(1, 2, 2)
         self.ax.axis('off')
-        self.cx.axis([0, 1000, 0, self.N_INDIVIDUALS])
+        self.cx.axis([0, 300, 0, self.N_INDIVIDUALS])
         self.scatter = self.ax.scatter([p.posx for p in self.individuals],
                              [p.posy for p in self.individuals], c='blue', s=12)
         self.box = plt.Rectangle((0, 0), 100, 100, fill=False)
@@ -64,7 +74,7 @@ class SIRSimulation:
         self.list_removed = [0]
         self.list_time = [0]
 
-    def update(self, frame, removed, infected, susceptible, t):
+    def update(self, frame, removed, currently_infected, susceptible, t):
         # function excecuted frame by frame
         count_susceptible = self.N_INDIVIDUALS
         count_infected = 0
@@ -75,11 +85,11 @@ class SIRSimulation:
         for p in self.individuals:
             # check how much time the person has been sick
             p.check_infection(frame)
-            # animate the movement of each person
+            # animate the movement of each individuum
             if not p.removed:
                 p.update_pos(0, 0)
             if p.removed:
-                count_removed += 1  # count the amount of recovered
+                count_removed += 1  # count the amount of removed
                 count_susceptible -= 1
             if p.infected:
                 count_infected = count_infected + 1  # count the amount of infected
@@ -99,17 +109,20 @@ class SIRSimulation:
             individual_colors.append(p.get_color())  # change dot color according to the person's status
 
         # update the plotting data
-        infected.append(count_infected)
+        currently_infected.append(count_infected)
         removed.append(count_removed)
         susceptible.append(count_susceptible)
         t.append(frame)
+
+        # check for termination
+        self._check_for_termination(currently_infected)
 
         # transfer the data to the matplotlib graphics
         offsets = np.array([[p.posx for p in self.individuals], [p.posy for p in self.individuals]])
         self.scatter.set_offsets(np.ndarray.transpose(offsets))
         self.scatter.set_color(individual_colors)
         self.scatter.set_sizes(individual_sizes)
-        self.cvst.set_data(t, infected)
+        self.cvst.set_data(t, currently_infected)
         self.rvst.set_data(t, removed)
         self.svst.set_data(t, susceptible)
 
@@ -122,6 +135,10 @@ class SIRSimulation:
     def continue_simulation(self):
         self.isRunning = True
         self.animation.event_source.start()
+
+    def _check_for_termination(self, infected):
+        if infected[-1] == 0:
+            self.pause_simualtion()
 
     def run(self):
         # run the animation indefinitely
