@@ -1,17 +1,21 @@
 from Individual import Individual
+import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 from matplotlib.animation import FuncAnimation
-from matplotlib.widgets import Button, Slider
+from datetime import datetime
 
 
 class SIRSimulation:
 
     def __init__(self, n_individuals=400, prct_infected=2, r_infection=2.5,
-                 p_infection=6, p_quarantine=0, t_recovery=40, different_recovery_times=False):
+                 p_infection=6, p_quarantine=0, t_recovery=40, different_recovery_times=False, save_figure=False,
+                 simulation_mode=False):
         # SIMULATION PARAMETERS
         self.isRunning = False
         self.wasStarted = False
+        self.simulation_mode = simulation_mode
         self.animation = None
         self.N_INDIVIDUALS = n_individuals  # number of individuals
         self.PRCT_INFECTED = prct_infected  # percentage of infected people at the beginning of the simulation (0-100%)
@@ -20,6 +24,8 @@ class SIRSimulation:
         self.P_QUARANTINE = p_quarantine  # percentage of the people in quarantine (0-100%)
         self.T_RECOVERY = t_recovery  # time taken to recover in number of frames (0-infinity)
         self.different_recovery_times = different_recovery_times  # rand recovery t for each ind btw.. 1 and t_recovery
+        self.save_figure = save_figure
+        self.fig_path = os.path.join(os.getcwd(), 'figs')
         self.n_infected = 0
         self.individuals = []
         self._init_individuals()
@@ -28,6 +34,7 @@ class SIRSimulation:
     def _init_individuals(self):
         # creating all the individuals in random positions and infecting some of them.
         for i in range(self.N_INDIVIDUALS):
+            # sample different infectrion probabilities for each individual, if True
             if self.different_recovery_times:
                 if np.random.uniform(0, 1, 1) > 0.5:
                     recovery_time = np.random.randint(1, self.T_RECOVERY)
@@ -35,39 +42,66 @@ class SIRSimulation:
                     recovery_time = self.T_RECOVERY
             else:
                 recovery_time = self.T_RECOVERY
+            # Dicide for each individual if quarantine or not with given quarantine probability
+            if self.P_QUARANTINE > 0:
+                prob_quarantine = np.random.choice(np.arange(0, 2), p=[1 - float(self.P_QUARANTINE / 100),
+                                                                       float(self.P_QUARANTINE / 100)])
+                prob_quarantine = bool(prob_quarantine)
+            else:
+                prob_quarantine = False
 
             p = Individual(i, np.random.random() * 100, np.random.random() * 100,
                            np.random.random() * 100, np.random.random() * 100,
-                           (np.random.random() + 0.5) * 100, recovery_time, False)
+                           (np.random.random() + 0.5) * 100, recovery_time, prob_quarantine)
 
+            # Infect individual by given prct
             if np.random.random() < self.PRCT_INFECTED / 100:
                 p.infect(0)
                 self.n_infected = self.n_infected + 1
-            if np.random.random() < self.P_QUARANTINE / 100:
-                p.fixedQuarantine = True
 
             self.individuals.append(p)
 
     def _init_figure(self):
         # create all the graphics
         self.fig = plt.figure(figsize=(20, 10))
-        self.fig.suptitle('SIR Model Animation', fontsize=20)
-        self.fig.canvas.set_window_title('SIR Model Animation')
-        self.ax = self.fig.add_subplot(1, 2, 1)
-        self.cx = self.fig.add_subplot(1, 2, 2)
-        self.ax.axis('off')
-        self.cx.axis([0, 300, 0, self.N_INDIVIDUALS])
-        self.scatter = self.ax.scatter([p.posx for p in self.individuals],
-                             [p.posy for p in self.individuals], c='blue', s=12)
-        self.box = plt.Rectangle((0, 0), 100, 100, fill=False)
-        self.ax.add_patch(self.box)
-        self.cvst, = self.cx.plot(self.n_infected, color="red", label="Infected")
-        self.rvst, = self.cx.plot(self.n_infected, color="gray", label="Removed")
-        self.svst, = self.cx.plot(self.n_infected, color='blue', label='Susceptible')
+        self.gridspec = self.fig.add_gridspec(ncols=2, nrows=3)
+        description = '- Number of individuals: {}\n'\
+                      '- Percent of initially infected individuals: {}\n' \
+                      '- Infection radius of an individual: {}\n' \
+                      '- Infection probabilty of an individual.: {}\n' \
+                      '- Quarantine probability: {}\n' \
+                      '- Timesteps until infected individual is removed: {}\n' \
+                      '- Different recovery times for each indiviual: {}\n' \
+                      '- Save Figure: {}'.format(self.N_INDIVIDUALS,
+                                               self.PRCT_INFECTED,
+                                               self.INFECTION_RADIUS,
+                                               self.INFECTION_PROBABILITY,
+                                               self.P_QUARANTINE,
+                                               self.T_RECOVERY,
+                                               self.different_recovery_times,
+                                               self.save_figure)
 
-        self.cx.legend(handles=[self.svst, self.cvst, self.rvst])
-        self.cx.set_xlabel("Time")
-        self.cx.set_ylabel("Individuals")
+        title = 'SIR Model Animation'
+        self.fig.suptitle(title, fontsize=20)
+        self.fig.canvas.set_window_title('SIR Model Animation')
+        self.text_plot = self.fig.add_subplot(self.gridspec[0,1])
+        self.text_plot.text(0.05,0, description, fontsize=18,  bbox=dict(facecolor='lightgreen', alpha=0.5))
+        self.kpis_plot = self.fig.add_subplot(self.gridspec[0:,0])
+        self.population_scatter = self.fig.add_subplot(self.gridspec[1:,1])
+        self.population_scatter.axis('off')
+        self.text_plot.axis('off')
+        self.kpis_plot.axis([0, 300, 0, self.N_INDIVIDUALS])
+        self.scatter = self.population_scatter.scatter([p.posx for p in self.individuals],
+                                                       [p.posy for p in self.individuals], c='blue', s=12)
+        self.box = plt.Rectangle((0, 0), 100, 100, fill=False)
+        self.population_scatter.add_patch(self.box)
+        self.cvst, = self.kpis_plot.plot(self.n_infected, color="red", label="Infected")
+        self.rvst, = self.kpis_plot.plot(self.n_infected, color="gray", label="Removed")
+        self.svst, = self.kpis_plot.plot(self.n_infected, color='blue', label='Susceptible')
+
+        self.kpis_plot.legend(handles=[self.svst, self.cvst, self.rvst])
+        self.kpis_plot.set_xlabel("Time")
+        self.kpis_plot.set_ylabel("Individuals")
 
         self.list_susceptible = [self.N_INDIVIDUALS]
         self.list_infected = [self.n_infected]
@@ -128,9 +162,27 @@ class SIRSimulation:
 
         return self.scatter, self.cvst, self.rvst, self.svst
 
+    def save_fig(self):
+        now = datetime.now().strftime('%Y%m%d')
+        figname = "{}_Simulation_n_individuals_{}_prct_infected_{}_infection_radius_{}_infection_prob_{}" \
+                  "_p_quarantine_{}_t_infected_{}_diff_recovery_times_{}.png".format(now, self.N_INDIVIDUALS,
+                                                                                     self.PRCT_INFECTED,
+                                                                                     self.INFECTION_RADIUS,
+                                                                                     self.INFECTION_PROBABILITY,
+                                                                                     self.P_QUARANTINE,
+                                                                                     self.T_RECOVERY,
+                                                                                     self.different_recovery_times)
+        full_figname = os.path.join(self.fig_path, figname)
+        self.fig.savefig(full_figname, dpi=400)
+        print('[SIM] Saved figure: {}'.format(full_figname))
+
     def pause_simualtion(self):
         self.isRunning = False
         self.animation.event_source.stop()
+        if self.save_figure:
+            self.save_fig()
+        if self.simulation_mode:
+            self.fig.close()
 
     def continue_simulation(self):
         self.isRunning = True

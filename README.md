@@ -36,6 +36,9 @@ Command Line Arguments:
 --random_recovery_time   Different random recovery time for each individual; default is False            
 -z                       Different random recovery time for each individual; default is False
 ###############################################################################################
+--save_figure            Save the end result of the simulation; default is False
+-s                       Save the end result of the simulation; default is False
+###############################################################################################
 ```
 
 ### Example

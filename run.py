@@ -14,12 +14,14 @@ def main(argv):
     prct_quarantine = 0  # percentage of the people in quarantine (0-100%)
     time_infected = 40  # time taken to recover/ remove in number of frames (0-infinity)
     random_recovery_time = False  # Different random recovery time for each individual; default is False
+    save_figure = False
     print('Number of passed arguments:', len(sys.argv))
 
     try:
-        opts, args = getopt.getopt(argv, "hn:p:r:i:q:t:z:", ["help", "n_individuals=", "prct_infected=",
-                                                             "infection_radius=", "infection_prob=", "prct_quarantine=",
-                                                             "time_infected=", "random_recovery_time="])
+        opts, args = getopt.getopt(argv, "hn:p:r:i:q:t:z:s:", ["save_figure=", "help", "n_individuals=",
+                                                               "prct_infected=", "infection_radius=", "infection_prob=",
+                                                               "prct_quarantine=", "time_infected=",
+                                                               "random_recovery_time="])
     except getopt.GetoptError as e:
         print('Excpetion!')
         print(e)
@@ -50,6 +52,9 @@ def main(argv):
             --random_recovery_time   Different random recovery time for each individual; default is False            
             -z                       Different random recovery time for each individual; default is False
             ###############################################################################################
+            --save_figure            Save the end result of the simulation; default is False
+            -s                       Save the end result of the simulation; default is False
+            ###############################################################################################
             """
             print(txt)
             sys.exit()
@@ -67,6 +72,8 @@ def main(argv):
             time_infected = int(arg)
         elif opt in ('-z', '--random_recovery_time'):
             random_recovery_time = bool(int(arg))
+        elif opt in ('-s', '--save_figure'):
+            save_figure = bool(int(arg))
 
     print('+++ Parameter +++')
     print('n_individuals: {}'.format(n_individuals))
@@ -76,11 +83,12 @@ def main(argv):
     print('prct_quarantine: {}'.format(prct_quarantine))
     print('time_infected: {}'.format(time_infected))
     print('random_recovery_time: {}'.format(random_recovery_time))
+    print('save_figure: {}'.format(save_figure))
     print('+++++++++++++++++')
 
     sim = SIRSimulation(n_individuals=n_individuals,prct_infected=prct_infected, r_infection=infection_radius,
                         p_infection=infection_prob, p_quarantine=prct_quarantine, t_recovery=time_infected,
-                        different_recovery_times=random_recovery_time)
+                        different_recovery_times=random_recovery_time, save_figure=save_figure)
     sim.run()
 
 
