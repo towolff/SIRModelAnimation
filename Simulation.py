@@ -12,7 +12,6 @@ class SIRSimulation:
     def __init__(self, n_individuals=400, prct_infected=2, r_infection=2.5,
                  p_infection=6, p_quarantine=0, t_recovery=40, different_recovery_times=False, save_figure=False,
                  simulation_mode=False):
-        # SIMULATION PARAMETERS
         self.isRunning = False
         self.wasStarted = False
         self.simulation_mode = simulation_mode
@@ -27,10 +26,10 @@ class SIRSimulation:
         self.save_figure = save_figure
         self.fig_path = os.path.join(os.getcwd(), 'figs')
         self.n_infected = 0
-        self.current_r = [0.0]
+        self.current_r_list = [0.0]
         self.r_template_txt = 'R: {:.2f}'
         self.individuals = []
-        self.list_r_txt = [self.r_template_txt.format(self.current_r[-1])]
+        self.list_r_txt = [self.r_template_txt.format(self.current_r_list[-1])]
         self.list_susceptible = [self.N_INDIVIDUALS]
         self.list_infected = [self.n_infected]
         self.list_removed = [0]
@@ -93,13 +92,15 @@ class SIRSimulation:
         title = 'SIR Model Animation'
         self.fig.suptitle(title, fontsize=20)
         self.fig.canvas.set_window_title('SIR Model Animation')
-        self.text_plot = self.fig.add_subplot(self.gridspec[0,1])
-        self.text_plot.text(0.05,0, description, fontsize=18,  bbox=dict(facecolor='lightgreen', alpha=0.5))
-        self.kpis_plot = self.fig.add_subplot(self.gridspec[0:,0])
-        self.population_scatter = self.fig.add_subplot(self.gridspec[1:,1])
+        self.text_plot = self.fig.add_subplot(self.gridspec[0, 1])
+        self.text_plot.text(0.05, 0, description, fontsize=18,  bbox=dict(facecolor='lightgreen', alpha=0.5))
+        self.kpis_plot = self.fig.add_subplot(self.gridspec[0:-1, 0])  # first: row, second: column
+        self.r_plot = self.fig.add_subplot(self.gridspec[-1, 0])
+        self.population_scatter = self.fig.add_subplot(self.gridspec[1:, 1])
         self.population_scatter.axis('off')
         self.text_plot.axis('off')
         self.kpis_plot.axis([0, 300, 0, self.N_INDIVIDUALS])
+        self.r_plot.axis([0, 300, 0, 4.0])
         self.scatter = self.population_scatter.scatter([p.posx for p in self.individuals],
                                                        [p.posy for p in self.individuals], c='blue', s=12)
         self.box = plt.Rectangle((0, 0), 100, 100, fill=False)
@@ -107,17 +108,22 @@ class SIRSimulation:
         self.cvst, = self.kpis_plot.plot(self.n_infected, color="red", label="Infected")
         self.rvst, = self.kpis_plot.plot(self.n_infected, color="gray", label="Removed")
         self.svst, = self.kpis_plot.plot(self.n_infected, color='blue', label='Susceptible')
+        self.r_line2d, = self.r_plot.plot(self.current_r_list[-1], color='orange', label='R-Factor')
         self.r_text_obj = self.population_scatter.text(0, 0, ' ', fontsize=20)
 
         self.kpis_plot.legend(handles=[self.svst, self.cvst, self.rvst])
+        self.r_plot.legend(handles=[self.r_line2d])
         self.kpis_plot.set_xlabel("Time")
         self.kpis_plot.set_ylabel("Individuals")
+        self.r_plot.set_xlabel("Time")
+        self.r_plot.set_ylabel("R-Factor")
 
     def update(self, frame, removed, currently_infected, susceptible, t, current_r):
         # function excecuted frame by frame
         count_susceptible = self.N_INDIVIDUALS
         count_infected = 0
         count_removed = 0
+        current_r_val = 0.0
         individual_colors = []
         individual_sizes = [12 for p in self.individuals]
         for p in self.individuals:
@@ -147,16 +153,18 @@ class SIRSimulation:
             individual_colors.append(p.get_color())  # change dot color according to the person's status
 
         # calculate R-factor
-        if len(t) > 4 and t[-1] != 0:
-            self._calculate_r_factor()
+        r_factor = 0.0
+        if t[-1] != 0:
+            r_factor = self._calculate_r_factor()
 
-        self.r_text_obj.set_text(self.r_template_txt.format(self.current_r[-1]))
+        self.r_text_obj.set_text(self.r_template_txt.format(r_factor))
+
         # update the plotting data
         currently_infected.append(count_infected)
         removed.append(count_removed)
         susceptible.append(count_susceptible)
         t.append(frame)
-        current_r.append(self.current_r[-1])
+        current_r.append(r_factor)
 
         # check for termination
         self._check_for_termination(currently_infected)
@@ -169,8 +177,9 @@ class SIRSimulation:
         self.cvst.set_data(t, currently_infected)
         self.rvst.set_data(t, removed)
         self.svst.set_data(t, susceptible)
+        self.r_line2d.set_data(t, current_r)
 
-        return self.scatter, self.cvst, self.rvst, self.svst, self.r_text_obj
+        return self.scatter, self.cvst, self.rvst, self.svst, self.r_text_obj, self.r_line2d
 
     def save_fig(self):
         now = datetime.now().strftime('%Y%m%d')
@@ -206,7 +215,7 @@ class SIRSimulation:
         r_divisor = self.list_infected[-4]
         r_dividend = self.list_infected[-1]
         r_factor = float(r_dividend / r_divisor)
-        self.current_r.append(r_factor)
+        return r_factor
 
     def run(self):
         # run the animation indefinitely
@@ -214,7 +223,7 @@ class SIRSimulation:
         self.wasStarted = True
         self.animation = FuncAnimation(self.fig, self.update, interval=25,
                                        fargs=(self.list_removed, self.list_infected, self.list_susceptible,
-                                              self.list_time, self.current_r), blit=True)
+                                              self.list_time, self.current_r_list), blit=True)
 
         plt.show()
 
