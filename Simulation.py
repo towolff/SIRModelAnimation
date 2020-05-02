@@ -27,7 +27,16 @@ class SIRSimulation:
         self.save_figure = save_figure
         self.fig_path = os.path.join(os.getcwd(), 'figs')
         self.n_infected = 0
+        self.current_r = [0.0]
+        self.r_template_txt = 'R: {:.2f}'
         self.individuals = []
+        self.list_r_txt = [self.r_template_txt.format(self.current_r[-1])]
+        self.list_susceptible = [self.N_INDIVIDUALS]
+        self.list_infected = [self.n_infected]
+        self.list_removed = [0]
+        self.list_time = [0]
+        self.time = []
+        self.iteration = []
         self._init_individuals()
         self._init_figure()
 
@@ -73,13 +82,13 @@ class SIRSimulation:
                       '- Timesteps until infected individual is removed: {}\n' \
                       '- Different recovery times for each indiviual: {}\n' \
                       '- Save Figure: {}'.format(self.N_INDIVIDUALS,
-                                               self.PRCT_INFECTED,
-                                               self.INFECTION_RADIUS,
-                                               self.INFECTION_PROBABILITY,
-                                               self.P_QUARANTINE,
-                                               self.T_RECOVERY,
-                                               self.different_recovery_times,
-                                               self.save_figure)
+                                                 self.PRCT_INFECTED,
+                                                 self.INFECTION_RADIUS,
+                                                 self.INFECTION_PROBABILITY,
+                                                 self.P_QUARANTINE,
+                                                 self.T_RECOVERY,
+                                                 self.different_recovery_times,
+                                                 self.save_figure)
 
         title = 'SIR Model Animation'
         self.fig.suptitle(title, fontsize=20)
@@ -98,24 +107,19 @@ class SIRSimulation:
         self.cvst, = self.kpis_plot.plot(self.n_infected, color="red", label="Infected")
         self.rvst, = self.kpis_plot.plot(self.n_infected, color="gray", label="Removed")
         self.svst, = self.kpis_plot.plot(self.n_infected, color='blue', label='Susceptible')
+        self.r_text_obj = self.population_scatter.text(0, 0, ' ', fontsize=20)
 
         self.kpis_plot.legend(handles=[self.svst, self.cvst, self.rvst])
         self.kpis_plot.set_xlabel("Time")
         self.kpis_plot.set_ylabel("Individuals")
 
-        self.list_susceptible = [self.N_INDIVIDUALS]
-        self.list_infected = [self.n_infected]
-        self.list_removed = [0]
-        self.list_time = [0]
-
-    def update(self, frame, removed, currently_infected, susceptible, t):
+    def update(self, frame, removed, currently_infected, susceptible, t, current_r):
         # function excecuted frame by frame
         count_susceptible = self.N_INDIVIDUALS
         count_infected = 0
         count_removed = 0
         individual_colors = []
         individual_sizes = [12 for p in self.individuals]
-
         for p in self.individuals:
             # check how much time the person has been sick
             p.check_infection(frame)
@@ -142,11 +146,17 @@ class SIRSimulation:
 
             individual_colors.append(p.get_color())  # change dot color according to the person's status
 
+        # calculate R-factor
+        if len(t) > 4 and t[-1] != 0:
+            self._calculate_r_factor()
+
+        self.r_text_obj.set_text(self.r_template_txt.format(self.current_r[-1]))
         # update the plotting data
         currently_infected.append(count_infected)
         removed.append(count_removed)
         susceptible.append(count_susceptible)
         t.append(frame)
+        current_r.append(self.current_r[-1])
 
         # check for termination
         self._check_for_termination(currently_infected)
@@ -160,7 +170,7 @@ class SIRSimulation:
         self.rvst.set_data(t, removed)
         self.svst.set_data(t, susceptible)
 
-        return self.scatter, self.cvst, self.rvst, self.svst
+        return self.scatter, self.cvst, self.rvst, self.svst, self.r_text_obj
 
     def save_fig(self):
         now = datetime.now().strftime('%Y%m%d')
@@ -192,13 +202,19 @@ class SIRSimulation:
         if infected[-1] == 0:
             self.pause_simualtion()
 
+    def _calculate_r_factor(self):
+        r_divisor = self.list_infected[-4]
+        r_dividend = self.list_infected[-1]
+        r_factor = float(r_dividend / r_divisor)
+        self.current_r.append(r_factor)
+
     def run(self):
         # run the animation indefinitely
         self.isRunning = True
         self.wasStarted = True
         self.animation = FuncAnimation(self.fig, self.update, interval=25,
                                        fargs=(self.list_removed, self.list_infected, self.list_susceptible,
-                                              self.list_time), blit=True)
+                                              self.list_time, self.current_r), blit=True)
 
         plt.show()
 
