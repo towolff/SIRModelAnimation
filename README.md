@@ -43,4 +43,4 @@ Command Line Arguments:
 
 ### Example
 
-![alt text](./figs/20200430_Simulation_n_individuals_500_prct_infected_2_infection_radius_2.5_infection_prob_6_p_quarantine_0_t_infected_60_diff_recovery_times_False.png "Logo Title Text 1")
+![alt text](./figs/20200502_Simulation_n_individuals_400_prct_infected_2_infection_radius_5.0_infection_prob_10_p_quarantine_0_t_infected_40_diff_recovery_times_False.png "Logo Title Text 1")
